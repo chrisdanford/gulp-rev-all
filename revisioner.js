@@ -19,7 +19,8 @@ var Revisioner = (function () {
             'referenceToRegexs': referenceToRegexs,
             'annotator': annotator,
             'replacer': replacer,
-            'debug': false
+            'debug': false,
+            'hashString': function(s) { return Tool.md5(s); }
         };
 
         this.options = Merge(defaults, options);
@@ -146,7 +147,7 @@ var Revisioner = (function () {
         file.revPathOriginal = file.revOrigPath = file.path;
         file.revFilenameExtOriginal = Path.extname(file.path);
         file.revFilenameOriginal = Path.basename(file.path, file.revFilenameExtOriginal);
-        file.revHashOriginal = this.Tool.md5(String(file.contents));
+        file.revHashOriginal = this.hashString(String(file.contents));
         file.revContentsOriginal = file.contents;
 
         this.filesTemp.push(file);
@@ -181,7 +182,7 @@ var Revisioner = (function () {
         }
 
         // Consolidate the concatinated hash of all the files, into a single hash for the version file
-        this.hashCombined = this.Tool.md5(this.hashCombined);
+        this.hashCombined = this.hashString(this.hashCombined);
 
         // Update references to revisioned filenames
         for (var path in this.files) {
@@ -272,6 +273,13 @@ var Revisioner = (function () {
     };
 
     /**
+     * Calculate hash from contents of a file.
+     */
+    Revisioner.prototype.hashString = function (s) {
+        return this.options.hashString.call(this, s);
+    };
+
+    /**
      * Calculate hash based contents and references.
      * hash = hash(file hash + hash(hash references 1 + hash reference N)..)
      */
@@ -295,7 +303,7 @@ var Revisioner = (function () {
             }
 
             // Consolidate many hashes into one
-            hash = this.Tool.md5(hash);
+            hash = this.hashString(hash);
 
         }
 
@@ -361,7 +369,7 @@ var Revisioner = (function () {
             var referencePath = reference.path.substr(0, reference.path.length - (reference.file.revFilenameOriginal.length + reference.file.revFilenameExtOriginal.length));
             var pathReferenceReplace = referencePath + reference.file.revFilename;
 
-            
+
             if (this.options.transformPath) {
                 // Transform path using client supplied transformPath callback,
                 pathReferenceReplace = this.options.transformPath.call(this, pathReferenceReplace, reference.path, reference.file, file);
